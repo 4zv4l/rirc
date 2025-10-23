@@ -15,10 +15,12 @@ unit sub MAIN(
 # protect the upper pane showing messages
 my $lock = Lock.new;
 
-# IRC
-setup-irc($nick, $server, $port, $tls, $lock);
-
 # UI
 my $ui = setup-ui($nick, $lock);
+
+# IRC
+setup-irc($nick, $server, $port, $tls, $ui, $lock);
+
+# event loop
 $ui.interact;
 $ui.shutdown;

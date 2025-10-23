@@ -1,6 +1,6 @@
 unit module rirc::IRC;
 
-sub setup-irc($nick, $server, $port, $tls, $lock) is export {
+sub setup-irc($nick, $server, $port, $tls, $ui, $lock) is export {
     # Setup client and add a tap
     # ui.interact will run event loop
 }
