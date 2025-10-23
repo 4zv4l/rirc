@@ -22,7 +22,7 @@ sub setup-ui($nick, $lock) is export {
                 if $contents.chars > 0 {
                     $lock.protect: { upper.put: "$nick: " ~ $contents; }
                     $contents = "";
-                    pane.update( :$line, $contents, meta => %( :$contents ) );
+                    pane.update( :$line, '█', meta => %( :$contents ) );
                 }
             }
             when 'Delete' {
@@ -43,6 +43,7 @@ sub setup-ui($nick, $lock) is export {
     ui.bind: 'Esc' => 'quit';
     ui.ui-bindings<q>:delete;
 
+    b.update( :$line, '█');
     ui.mode = 'input';
     return ui;
 }

@@ -6,10 +6,10 @@ use lib::UI;
 use Terminal::UI 'ui';
 
 unit sub MAIN(
-    :$nick   = 'foobar',            #= Nickname to use
-    :$server = 'irc.libera.chat',   #= IRC server to connect to
-    :$port   = 6697,                #= Port used by the IRC server
-    :$tls    = True,                #= Use TLS?
+    Str  :$nick   = 'ano',               #= Nickname to use
+    Str  :$server = 'irc.libera.chat',   #= IRC server to connect to
+    UInt :$port   = 6697,                #= Port used by the IRC server
+    Bool :$tls    = True,                #= Use TLS?
 );
 
 # protect the upper pane showing messages
