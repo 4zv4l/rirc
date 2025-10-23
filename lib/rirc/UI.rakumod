@@ -1,4 +1,4 @@
-unit module UI;
+unit module rirc::UI;
 
 use Terminal::UI 'ui';
 

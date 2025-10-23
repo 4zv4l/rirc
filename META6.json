@@ -9,8 +9,6 @@
   "description": "Raku very simple TUI IRC Client",
   "name": "rirc",
   "provides": {
-    "lib::IRC": "lib/IRC.rakumod",
-    "lib::UI": "lib/UI.rakumod",
     "rirc": "rirc.raku"
   },
   "resources": [

@@ -1,4 +1,4 @@
-unit module IRC;
+unit module rirc::IRC;
 
 sub setup-irc($nick, $server, $port, $tls, $lock) is export {
     # Setup client and add a tap

@@ -1,8 +1,8 @@
 #!/usr/bin/env raku
 
-use lib "{$*PROGRAM.dirname}";
-use lib::IRC;
-use lib::UI;
+use lib "{$*PROGRAM.dirname}/lib";
+use rirc::IRC;
+use rirc::UI;
 use Terminal::UI 'ui';
 
 unit sub MAIN(
