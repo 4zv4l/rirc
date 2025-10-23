@@ -12,8 +12,6 @@ unit sub MAIN(
     :$tls    = True,                #= Use TLS?
 );
 
-# load config
-
 # protect the upper pane showing messages
 my $lock = Lock.new;
 

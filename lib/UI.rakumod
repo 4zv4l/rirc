@@ -1,4 +1,4 @@
-#!/usr/bin/env raku
+unit module UI;
 
 use Terminal::UI 'ui';
 

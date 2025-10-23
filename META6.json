@@ -1,0 +1,21 @@
+{
+  "auth": "zef:4zv4l",
+  "build-depends": [
+  ],
+  "depends": [
+    "Terminal::UI",
+    "IRC::Client"
+  ],
+  "description": "Raku very simple TUI IRC Client",
+  "name": "rirc",
+  "provides": {
+    "lib::IRC": "lib/IRC.rakumod",
+    "lib::UI": "lib/UI.rakumod",
+    "rirc": "rirc.raku"
+  },
+  "resources": [
+  ],
+  "test-depends": [
+  ],
+  "version": "0.0.1"
+}
