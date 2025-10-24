@@ -3,13 +3,14 @@ use IRC::Client;
 unit class rirc::IRC;
 
 has $.nick is rw;
+has @.channels is rw;
+has $.focused-channel is rw = "Default";
 has $.server;
 has $.port;
 has $.tls;
 has $.ui is rw;
 has $.lock is rw;
 has $.irc is rw;
-has $.last-channel-joined is rw = "#foo";
 
 class BasicClient does IRC::Client::Plugin {
     has $.lock;
@@ -31,11 +32,12 @@ method start {
     $.irc = IRC::Client.new:
         :$.nick,
         :alias($.nick, /foo.../),
-        :channels(),
+        :@.channels,
         :host($.server),
         :$.port,
         :ssl($.tls),
         :plugins(BasicClient.new(:$.lock, :$.ui));
+    @.channels.push: "Default";
     $.irc.run;
 }
 
@@ -54,8 +56,8 @@ method start {
 method handle-input($msg) {
     # simple message
     if $msg !~~ /^'/'/ {
-        $!ui.message-pane.put: "{$.last-channel-joined} {$!nick}: " ~ $msg, :wrap<hard>;
-        $.irc.send(:where($.last-channel-joined), :text($msg));
+        $!ui.message-pane.put: "{@.channels[0]} {$!nick}: " ~ $msg, :wrap<hard>;
+        $.irc.send(:where(@.channels[0]), :text($msg));
         return;
     }
 
@@ -67,8 +69,11 @@ method handle-input($msg) {
             $.irc.nick: (|@msg[1..*]);
         }
         when '/join' {
-            $.last-channel-joined = @msg[1];
-            $.irc.join: (@msg[1..*]);
+            $.irc.join: (@msg[1]);
+            @.channels.push(@msg[1]) unless @.channels (cont) @msg[1];
+            $.focused-channel = @msg[1];
+            my $channels = @.channels.join(' ').subst($.focused-channel, "\e[1m" ~ $.focused-channel ~ "\e[21m");
+            $.ui.channels-pane.update(:0line, $channels);
         }
         when '/msg' {
             $.irc.send(:where(@msg[1]), :text(@msg[2..*].join(' ')));
