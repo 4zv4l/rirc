@@ -3,7 +3,6 @@
 use lib "{$*PROGRAM.dirname}/lib";
 use rirc::IRC;
 use rirc::UI;
-use Terminal::UI 'ui';
 
 unit sub MAIN(
     Str  :$nick   = 'ano',               #= Nickname to use
@@ -16,11 +15,11 @@ unit sub MAIN(
 my $lock = Lock.new;
 
 # UI
-my $ui = setup-ui($nick, $lock);
+my $ui = rirc::UI.new(:$lock);
 
 # IRC
-setup-irc($nick, $server, $port, $tls, $ui, $lock);
+my $irc = rirc::IRC.new(:$nick, :$server, :$port, :$tls, :$ui, :$lock);
+start $ui.start($irc);
 
 # event loop
-$ui.interact;
-$ui.shutdown;
+$irc.start;
