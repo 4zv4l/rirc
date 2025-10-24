@@ -18,6 +18,7 @@ class BasicClient does IRC::Client::Plugin {
         $.lock.protect: {
             $!ui.message-pane.put: "=> {$_}", :wrap<hard>;
         }
+        Nil
     }
 }
 
@@ -39,11 +40,11 @@ method start {
 # /clear           - Clears current tab        - Usage: `/clear`
 # TODO /switch     - Switches to tab           - Usage: `/switch <tab name>`
 # TODO /close      - Closes current tab        - Usage: `/close`
-# TODO /join       - Joins a channel           - Usage: `/join <chan...>`
+# /join            - Joins a channel           - Usage: `/join <chan...>`
 # TODO /me         - Sends emote message       - Usage: `/me <message>`
-# TODO /msg        - Sends a message to a user - Usage: `/msg <nick> <message>`
+# /msg             - Sends a message to a user - Usage: `/msg <nick> <message>`
 # TODO /names      - Shows users in channel    - Usage: `/names`
-# TODO /nick       - Sets your nick            - Usage: `/nick <nick>`
+# /nick            - Sets your nick            - Usage: `/nick <nick>`
 # TODO /help       - Displays this message     - Usage: `/help`
 method handle-input($msg) {
     # simple message
@@ -54,16 +55,17 @@ method handle-input($msg) {
     }
 
     # command
+    my $socket = $.irc.servers.first.value.socket;
     my @msg = $msg.split(' ');
-    given @msg {
+    given @msg[0] {
         when '/nick' {
             $.irc.nick: (|@msg[1..*]);
         }
         when '/join' {
             $.irc.join: (@msg[1..*]);
         }
-        when '/me' {
-
+        when '/msg' {
+            $.irc.send(:where(@msg[1]), :text(@msg[2..*].join(' ')));
         }
         when '/clear' {
             $.lock.protect: { 
@@ -80,7 +82,8 @@ method handle-input($msg) {
         default {
             # send command raw
             my $action = @msg[0].subst('/');
-            $.irc.print: "{$action.uc} {@msg[1..*].join(' ')}";
+            $!ui.message-pane.put: "sending raw message: " ~ $action, :wrap<hard>;
+            $socket.say: "{$action.uc} {@msg[1..*].join(' ')}";
         }
     }
 }
