@@ -1,4 +1,5 @@
 use IRC::Client;
+use Terminal::ANSIColor;
 
 unit class rirc::IRC;
 
@@ -19,8 +20,10 @@ class BasicClient does IRC::Client::Plugin {
     method irc-all($_) {
         $.lock.protect: {
             given $_ {
+                my $time = color("black") ~ DateTime.now.hh-mm-ss ~ color("reset");
                 $!ui.message-pane.put:
-                    .nick ?? "{.args[0]} {.nick}: {.Str}" !! "{.Str}",
+                    .nick ?? "{$time} {.args[0]} {.nick}: {.Str}"
+                          !! "{$time} {.Str}",
                     :wrap<hard>;
             }
         }
@@ -56,8 +59,9 @@ method start {
 method handle-input($msg) {
     # simple message
     if $msg !~~ /^'/'/ {
-        $!ui.message-pane.put: "{@.channels[0]} {$!nick}: " ~ $msg, :wrap<hard>;
-        $.irc.send(:where(@.channels[0]), :text($msg));
+        my $time = color("black") ~ DateTime.now.hh-mm-ss ~ color("reset");
+        $!ui.message-pane.put: "{$time} {$.focused-channel} {$!nick}: " ~ $msg, :wrap<hard>;
+        $.irc.send(:where($.focused-channel), :text($msg));
         return;
     }
 

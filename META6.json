@@ -4,7 +4,8 @@
   ],
   "depends": [
     "Terminal::UI",
-    "IRC::Client"
+    "IRC::Client",
+    "Terminal::ANSIColor"
   ],
   "description": "Raku very simple TUI IRC Client",
   "name": "rirc",
