@@ -9,6 +9,7 @@ has $.tls;
 has $.ui is rw;
 has $.lock is rw;
 has $.irc is rw;
+has $.last-channel-joined is rw = "#foo";
 
 class BasicClient does IRC::Client::Plugin {
     has $.lock;
@@ -50,7 +51,7 @@ method handle-input($msg) {
     # simple message
     if $msg !~~ /^'/'/ {
         $!ui.message-pane.put: "{$!nick}: " ~ $msg, :wrap<hard>;
-        $.irc.send(:where($.server), :text($msg));
+        $.irc.send(:where($.last-channel-joined), :text($msg));
         return;
     }
 
@@ -62,6 +63,7 @@ method handle-input($msg) {
             $.irc.nick: (|@msg[1..*]);
         }
         when '/join' {
+            $.last-channel-joined = @msg[1];
             $.irc.join: (@msg[1..*]);
         }
         when '/msg' {
