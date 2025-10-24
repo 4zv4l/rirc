@@ -17,7 +17,11 @@ class BasicClient does IRC::Client::Plugin {
 
     method irc-all($_) {
         $.lock.protect: {
-            $!ui.message-pane.put: "=> {$_}", :wrap<hard>;
+            given $_ {
+                $!ui.message-pane.put:
+                    .nick ?? "{.args[0]} {.nick}: {.Str}" !! "{.Str}",
+                    :wrap<hard>;
+            }
         }
         Nil
     }
@@ -50,7 +54,7 @@ method start {
 method handle-input($msg) {
     # simple message
     if $msg !~~ /^'/'/ {
-        $!ui.message-pane.put: "{$!nick}: " ~ $msg, :wrap<hard>;
+        $!ui.message-pane.put: "{$.last-channel-joined} {$!nick}: " ~ $msg, :wrap<hard>;
         $.irc.send(:where($.last-channel-joined), :text($msg));
         return;
     }
