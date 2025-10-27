@@ -1,67 +1,40 @@
 use IRC::Client;
-use Terminal::ANSIColor;
+use Terminal::ANSI::OO 't';
 
 unit class rirc::IRC;
 
 has $.nick is rw;
 has @.channels is rw;
-has $.focused-channel is rw = "Default";
 has $.server;
 has $.port;
 has $.tls;
 has $.ui is rw;
-has $.lock is rw;
 has $.irc is rw;
 
+# incoming message part
 class BasicClient does IRC::Client::Plugin {
-    has $.lock;
     has $.ui;
+    has $.nick; # TODO find a better way to get the nickname
+    has $.server;
 
     method irc-all($_) {
-        $.lock.protect: {
-            given $_ {
-                my $time = color("black") ~ DateTime.now.hh-mm-ss ~ color("reset");
-                $!ui.message-pane.put:
-                    .nick ?? "{$time} {.args[0]} {.nick}: {.Str}"
-                          !! "{$time} {.Str}",
-                    :wrap<hard>;
-            }
+        given $_ {
+            my $nick = try { .nick } // '*';
+            my $chan = try { .channel } // ($.server ~~ /:i $nick/ ?? '*' !! $nick);
+            my $msg  = .Str;
+            $!ui.update-chan($chan);
+            $!ui.show-msg($chan, $nick, $msg);
         }
         Nil
     }
 }
 
-method start {
-    $.irc = IRC::Client.new:
-        :$.nick,
-        :alias($.nick, /foo.../),
-        :@.channels,
-        :host($.server),
-        :$.port,
-        :ssl($.tls),
-        :plugins(BasicClient.new(:$.lock, :$.ui));
-    @.channels.push: "Default";
-    $.irc.run;
-}
-
-# Target is to handle at least those commands
-#
-# /quit            - Quit                      - Usage: `/quit`
-# /clear           - Clears current tab        - Usage: `/clear`
-# TODO /switch     - Switches to tab           - Usage: `/switch <tab name>`
-# TODO /close      - Closes current tab        - Usage: `/close`
-# /join            - Joins a channel           - Usage: `/join <chan...>`
-# TODO /me         - Sends emote message       - Usage: `/me <message>`
-# /msg             - Sends a message to a user - Usage: `/msg <nick> <message>`
-# TODO /names      - Shows users in channel    - Usage: `/names`
-# /nick            - Sets your nick            - Usage: `/nick <nick>`
-# TODO /help       - Displays this message     - Usage: `/help`
+# outgoing message part
 method handle-input($msg) {
     # simple message
     if $msg !~~ /^'/'/ {
-        my $time = color("black") ~ DateTime.now.hh-mm-ss ~ color("reset");
-        $!ui.message-pane.put: "{$time} {$.focused-channel} {$!nick}: " ~ $msg, :wrap<hard>;
-        $.irc.send(:where($.focused-channel), :text($msg));
+        $.ui.show-msg($!ui.focused-channel, $.nick, $msg);
+        $.irc.send(:where($!ui.focused-channel), :text($msg));
         return;
     }
 
@@ -71,34 +44,40 @@ method handle-input($msg) {
     given @msg[0] {
         when '/nick' {
             $.irc.nick: (|@msg[1..*]);
+            $.nick = @msg[1]; # not the best
         }
         when '/join' {
             $.irc.join: (@msg[1]);
-            @.channels.push(@msg[1]) unless @.channels (cont) @msg[1];
-            $.focused-channel = @msg[1];
-            my $channels = @.channels.join(' ').subst($.focused-channel, "\e[1m" ~ $.focused-channel ~ "\e[21m");
-            $.ui.channels-pane.update(:0line, $channels);
+            $.ui.switch-chan(@msg[1]);
         }
         when '/msg' {
             $.irc.send(:where(@msg[1]), :text(@msg[2..*].join(' ')));
         }
         when '/clear' {
-            $.lock.protect: { 
-                $.ui.message-pane.clear;
-            }
+            $.ui.clear-current-chan;
         }
         when '/quit' {
-            $.lock.protect: {
-                $.irc.quit;
-                $.ui.ui.shutdown;
-                exit;
-            }
+            $.irc.quit;
+            $.ui.quit;
         }
         default {
             # send command raw
             my $action = @msg[0].subst('/');
-            $!ui.message-pane.put: "sending raw message: " ~ $action, :wrap<hard>;
+            $!ui.message-pane.put: t.black ~ "sending raw message: $action" ~ t.text-reset, :wrap<hard>;
             $socket.say: "{$action.uc} {@msg[1..*].join(' ')}";
         }
     }
+}
+
+method start {
+    $.irc = IRC::Client.new:
+    :$.nick,
+    :alias($.nick, /foo.../),
+    :@.channels,
+    :host($.server),
+    :$.port,
+    :ssl($.tls),
+    :plugins(BasicClient.new(:$.nick, :$.server, :$.ui));
+    @.channels.push: "Default";
+    $.irc.run;
 }

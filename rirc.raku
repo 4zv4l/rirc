@@ -11,14 +11,11 @@ unit sub MAIN(
     Bool :$tls    = True,                #= Use TLS?
 );
 
-# protect the upper pane showing messages
-my $lock = Lock.new;
-
 # UI
-my $ui = rirc::UI.new(:$lock);
+my $ui = rirc::UI.new();
 
 # IRC
-my $irc = rirc::IRC.new(:$nick, :$server, :$port, :$tls, :$ui, :$lock);
+my $irc = rirc::IRC.new(:$nick, :$server, :$port, :$tls, :$ui);
 start $ui.start($irc);
 
 # event loop
