@@ -5,6 +5,7 @@ unit class rirc::UI;
 
 has $.irc is rw;
 has $.ui is rw;
+has $.nick is rw;
 has $.message-pane is rw;
 has $.channels-pane is rw;
 has $.input-pane is rw;
@@ -18,7 +19,8 @@ method setup-design {
     ui.setup: heights => [ fr => 1, 1, 1 ];
     ($!message-pane, $!channels-pane, $!input-pane) = ui.panes;
     ui.focus(pane => 2);
-    $!input-pane.update(:0line, '█');
+    $.nick = nickColor($.nick);
+    $!input-pane.update(:0line, "$.nick: █");
     ui.mode = 'input';
     return ui;
 }
@@ -33,14 +35,15 @@ method line-handling {
             when 'Enter' {
                 if $contents.chars > 0 {
                     $!irc.handle-input($contents);
+                    $.nick = nickColor($.irc.irc.servers.first.value.current-nick);
                     $contents = "";
-                    pane.update( :0line, '█', meta => %( :$contents ) );
+                    pane.update( :0line, "$.nick: █", meta => %( :$contents ) );
                 }
             }
             when 'Delete' {
                 if $contents.chars > 0 {
                     $contents .= substr(0, $contents.chars - 1) ;
-                    pane.update( :0line, $contents ~ "█", meta => %( :$contents ) );
+                    pane.update( :0line, "$.nick: $contents█", meta => %( :$contents ) );
                 }
             }
             # switch to messages pane to scroll messages
@@ -66,7 +69,7 @@ method line-handling {
             }
             default {
                 $contents ~= $c;
-                pane.update( :0line, $contents ~ "█", meta => %( :$contents ) );
+                pane.update( :0line, "$.nick: $contents█", meta => %( :$contents ) );
             }
         }
     }
@@ -76,7 +79,7 @@ method line-handling {
         ui.focus(pane => 2);
         ui.mode = 'input';
         my $content = 
-        $!input-pane.update(:0line, $contents ~ '█', meta => %( :$contents ))
+        $!input-pane.update(:0line, "$.nick: $contents█", meta => %( :$contents ))
     }
     $!input-pane.on: input => &edit-line;
     # Terminal::UI needs a binding to 'quit'
@@ -128,7 +131,7 @@ method clear-current-chan() {
 # use very silly algorithm to get a color for a nickname
 # the color will be the same for a same nickname
 sub nickColor(Str $nick --> Str) {
-    my @colors = <black red green yellow blue magenta cyan>;
+    my @colors = <red green yellow blue magenta cyan>;
     my $color = @colors[$nick.split('', :skip-empty)>>.ord.sum % @colors.elems];
     t."$color"() ~ $nick ~ t.text-reset
 }
