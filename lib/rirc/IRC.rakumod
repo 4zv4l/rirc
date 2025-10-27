@@ -11,6 +11,9 @@ has $.tls;
 has $.ui is rw;
 has $.irc is rw;
 
+# used when getting message right after /nick
+my $old-nick;
+
 # incoming message part
 class BasicClient does IRC::Client::Plugin {
     has $.ui;
@@ -21,9 +24,13 @@ class BasicClient does IRC::Client::Plugin {
         given $_ {
             my $nick = try { .nick } // '*';
             my $chan = try { .channel } // ($.server ~~ /:i $nick/ ?? '*' !! $nick);
+            # when renaming with /nick
+            $chan = '*' if $nick eq $old-nick or $nick eq .irc.servers.first.value.current-nick;
             my $msg  = .Str;
             $!ui.update-chan($chan);
             $!ui.show-msg($chan, $nick, $msg);
+            # debug purposes
+            #$!ui.show-msg($chan, $nick, "::: nick: $nick, chan: $chan, args: {.args.raku}");
         }
         Nil
     }
@@ -43,6 +50,7 @@ method handle-input($msg) {
     my @msg = $msg.split(' ');
     given @msg[0] {
         when '/nick' {
+            $old-nick = $.irc.servers.first.value.current-nick;
             $.irc.nick: (|@msg[1..*]);
             $.nick = @msg[1]; # not the best
         }
@@ -79,5 +87,8 @@ method start {
     :ssl($.tls),
     :plugins(BasicClient.new(:$.nick, :$.server, :$.ui));
     @.channels.push: "Default";
+
+    $old-nick = $.nick;
+
     $.irc.run;
 }
