@@ -10,21 +10,21 @@ has $.channels-pane is rw;
 has $.input-pane is rw;
 has $.focused-channel is rw = '*';
 
-my @channels;
-my %chan-msg;
+my @channels;   # currently connected channels
+my %chan-msg;   # channels => { @messages }
 
 # create UI
-# TODO: find a pretty way to show channels
-# and to switch between them with key bindings
 method setup-design {
     ui.setup: heights => [ fr => 1, 1, 1 ];
     ($!message-pane, $!channels-pane, $!input-pane) = ui.panes;
     ui.focus(pane => 2);
+    $!input-pane.update(:0line, '█');
+    ui.mode = 'input';
     return ui;
 }
 
+# input handling
 method line-handling {
-    # message line handling
     my $contents;
     sub edit-line($c) {
         my \pane := $!input-pane;
@@ -43,7 +43,8 @@ method line-handling {
                     pane.update( :0line, $contents ~ "█", meta => %( :$contents ) );
                 }
             }
-            when 'Esc' { # scroll in upper pane
+            # switch to messages pane to scroll messages
+            when 'Esc' {
                 ui.mode = 'command';
                 ui.focus(pane => 0);
             }
@@ -70,24 +71,19 @@ method line-handling {
         }
     }
 
-    # bind Tab for upper pane to switch to bottom pane in edit mode
+    # bind Esc for message-pane to switch back to input-pane
     ui.bind: 'Esc' => {
         ui.focus(pane => 2);
         ui.mode = 'input';
         my $content = 
         $!input-pane.update(:0line, $contents ~ '█', meta => %( :$contents ))
     }
-    # unbind q and bind Esc to quit
     $!input-pane.on: input => &edit-line;
-    ui.bind: 'Unknown' => 'quit'; # crashes without a quit binding it seems
+    # Terminal::UI needs a binding to 'quit'
+    ui.bind: 'Unknown' => 'quit';
     ui.ui-bindings<q>:delete;
     ui.ui-bindings<h>:delete;
     ui.ui-bindings<Untab>:delete;
-}
-
-method setup-finalize {
-    $!input-pane.update(:0line, '█');
-    ui.mode = 'input';
 }
 
 # switch to focused-channel
@@ -108,7 +104,9 @@ method switch-chan($chan) {
     }
 }
 
-# only update channels-pane on new channel
+# add new channels to the channels-pane
+# with the $force, update the channels-pane even if
+# the channel was already in the @channels
 method update-chan($chan, :$force = False) {
     my $to-add = not @channels (cont) $chan;
     @channels.push($chan) if $to-add;
@@ -120,18 +118,23 @@ method update-chan($chan, :$force = False) {
     }
 }
 
+# delete messages from channel chan-msg
+# clear the channel screen
 method clear-current-chan() {
     %chan-msg{$.focused-channel} = ();
     $!message-pane.clear;
 }
 
+# use very silly algorithm to get a color for a nickname
+# the color will be the same for a same nickname
 sub nickColor(Str $nick --> Str) {
     my @colors = <black red green yellow blue magenta cyan>;
     my $color = @colors[$nick.split('', :skip-empty)>>.ord.sum % @colors.elems];
     t."$color"() ~ $nick ~ t.text-reset
 }
 
-# only show new messages on focused-channel
+# print messages to the UI only if the channel matches the currently focused one
+# append message to chan-msg for later switch-chan if $append is True
 method show-msg($chan, $nick, $msg, :$append = True) {
     %chan-msg{$chan}.append([$nick, $msg]) if $append;
     return unless $chan eq $.focused-channel;
@@ -148,7 +151,6 @@ method start($irc) is export {
     $.irc = $irc;
     self.ui  = self.setup-design;
     self.line-handling;
-    self.setup-finalize;
     $.ui.interact;
     $.ui.shutdown;
 }

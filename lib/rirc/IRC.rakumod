@@ -8,16 +8,15 @@ has @.channels is rw;
 has $.server;
 has $.port;
 has $.tls;
-has $.ui is rw;
-has $.irc is rw;
+has $.ui is rw;             # ref to rirc::UI
+has $.irc is rw;            # ref to IRC::Client
 
-# used when getting message right after /nick
+# used when getting message right after changing nick
 my $old-nick;
 
 # incoming message part
 class BasicClient does IRC::Client::Plugin {
     has $.ui;
-    has $.nick; # TODO find a better way to get the nickname
     has $.server;
 
     method irc-all($_) {
@@ -29,8 +28,6 @@ class BasicClient does IRC::Client::Plugin {
             my $msg  = .Str;
             $!ui.update-chan($chan);
             $!ui.show-msg($chan, $nick, $msg);
-            # debug purposes
-            #$!ui.show-msg($chan, $nick, "::: nick: $nick, chan: $chan, args: {.args.raku}");
         }
         Nil
     }
@@ -38,21 +35,21 @@ class BasicClient does IRC::Client::Plugin {
 
 # outgoing message part
 method handle-input($msg) {
-    # simple message
+    # sending simple message
     if $msg !~~ /^'/'/ {
         $.ui.show-msg($!ui.focused-channel, $.nick, $msg);
         $.irc.send(:where($!ui.focused-channel), :text($msg));
         return;
     }
 
-    # command
+    # user command
     my $socket = $.irc.servers.first.value.socket;
     my @msg = $msg.split(' ');
     given @msg[0] {
         when '/nick' {
             $old-nick = $.irc.servers.first.value.current-nick;
             $.irc.nick: (|@msg[1..*]);
-            $.nick = @msg[1]; # not the best
+            $.nick = $.irc.servers.first.value.current-nick;
         }
         when '/join' {
             $.irc.join: (@msg[1]);
@@ -80,13 +77,12 @@ method handle-input($msg) {
 method start {
     $.irc = IRC::Client.new:
     :$.nick,
-    :alias($.nick, /foo.../),
+    :alias($.nick, /rirc.../),
     :@.channels,
     :host($.server),
     :$.port,
     :ssl($.tls),
     :plugins(BasicClient.new(:$.nick, :$.server, :$.ui));
-    @.channels.push: "Default";
 
     $old-nick = $.nick;
 
