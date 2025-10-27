@@ -55,6 +55,10 @@ method handle-input($msg) {
             $.irc.join: (@msg[1]);
             $.ui.switch-chan(@msg[1]);
         }
+        when '/part' {
+            $.irc.part: $!ui.focused-channel;
+            $.ui.quit-chan;
+        }
         when '/msg' {
             $.irc.send(:where(@msg[1]), :text(@msg[2..*].join(' ')));
         }

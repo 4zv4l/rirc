@@ -95,6 +95,8 @@ method switch-chan($chan) {
     $!message-pane.clear;
     # change current channel
     $.focused-channel = $chan;
+    # redraw the wall frame (otherwise some issue can occure)
+    ui.screen.frame.draw;
     # update-channel bar
     self.update-chan($.focused-channel, :force);
     # add all the messages
@@ -116,16 +118,29 @@ method update-chan($chan, :$force = False) {
     %chan-msg{$chan} = [] if $to-add;
 
     if $to-add or $force {
-        my $channels = @channels.join(' ').subst($.focused-channel, "\e[1m\e[3m" ~ $.focused-channel ~ "\e[0m");
+        my $current-chan = $.focused-channel;
+        my $channels = @channels.join(' ').subst(/<?after ' ' || ^> $current-chan <?before ' ' || $>/, t.bright-red ~ $.focused-channel ~ t.text-reset);
         $.channels-pane.update(:0line, $channels);
     }
 }
 
 # delete messages from channel chan-msg
 # clear the channel screen
-method clear-current-chan() {
+method clear-current-chan {
     %chan-msg{$.focused-channel} = ();
     $!message-pane.clear;
+}
+
+# part from focused-channel
+method quit-chan {
+    # remove chan messages
+    %chan-msg{$.focused-channel}:delete; 
+    # delete chan from @channels
+    my $current-idx   = @channels.first(* eq $.focused-channel, :k);
+    my $next-chan     = @channels[($current-idx-1) % @channels.elems];
+    @channels.splice($current-idx, 1);
+    # switch to another 
+    self.switch-chan($next-chan);
 }
 
 # use very silly algorithm to get a color for a nickname
